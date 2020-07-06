@@ -3,10 +3,18 @@
 
 #include "geometry.h"
 
-#define GR 4e7 / 360 	// метров в градусе
+// TODO расчет относительно широты координат вектора будет более точным
+#define EQUATOR_LENGTH 40075686. // [meters]
+#define EQUATOR_RADIUS  6378245. // [meters]
+#define POLAR_RADIUS    6356863. // [meters]
+#define EARTH_FLATTENING (EQUATOR_RADIUS - POLAR_RADIUS) / EQUATOR_RADIUS // [meters] - полярное сжатие Земли
 
-// TODO расчет относительно широты координат вектора будет более точным 
+#define GR EQUATOR_LENGTH / 360. 	// метров в одном градусе
+#define METERS_IN_ONE_DEG GR
+
 #define D2M(a) a * GR
+
+#define sqr(a) ((a)*(a))
 
 struct movement
 {

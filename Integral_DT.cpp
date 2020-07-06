@@ -7,6 +7,7 @@
 #include <string.h>
 #include <vector>
 
+#include "dt_tests.h"
 #include "dynamic_topography.h"
 #include "log.h"
 
@@ -16,7 +17,7 @@ using namespace std;
 void print_eng_usage()
 {
 	cout << "This Software is for calculating dynamic topography between two points\n\n";
-	cout << "Integral_DT release data - Jan 2019\n\n";
+	cout << "Integral_DT release data - 06 July 2020\n\n";
 	cout << "USAGE:\tintegral_dt.exe <vp_out_file> <boundary_points_list> <dt_out_file>\n\n";
 
 	cout << "Example: ""integral_DT.exe out_2006-05-04_0730_n27799.m.pro_2006-05-04_1300_n70056.m.pro.txt stations.txt DT_out.txt""\n\n"
@@ -158,10 +159,24 @@ int main(int argc, char** argv)
 	read_cuts(station_points_file, station);
 
 	read_movement_field(move_points_file, mvn);
+	
+	if (station.size() == 0)
+		return 0;
+
+
+
+/* test of geo to dec transformation*/
+	// test_geo2dec2geo(mvn, station[0].v().middle());
+	// return 0;
+/* end of test of geo to dec transformation*/
 
 
 	// flog.open(output_log);
 	// fitg.open(itg_log);
+
+	
+	// to_cartesian_cs(mvn, station[0].v().middle());
+
 
 	fres.open(out_file);
 

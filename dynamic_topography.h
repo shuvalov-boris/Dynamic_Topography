@@ -4,6 +4,8 @@
 // #include "geometry.h"
 #include "integration.h"
 
+#include <iomanip>
+#include <iostream>
 #include <vector>
 
 #define CUT_WIDTH 0.1
@@ -21,6 +23,63 @@ double dyn_top_koef(vec v)
 	double crl = coriolis(angle_avr);
 	return crl / G;
 }
+
+// origin - центр локальной декартовой системы координат в глобальных декартовых координатах
+point geo2dec(const point &gp, const point &origin = point(0, 0))
+{
+	// радиус Земли (от её центра к точке на поверхности заданной географической широты)
+	double earth_radius_at_latitude = EQUATOR_RADIUS * (1. - EARTH_FLATTENING * sqr(sin(gp.y * M_PI / 180)));
+	// cout << fixed << setprecision(10) << "geo2dec: earth_radius_at_latitude is " << earth_radius_at_latitude << " m\n";
+
+	// радиус сечения Земли на заданной географической широте
+	double little_radius_at_latitude = earth_radius_at_latitude * cos(gp.y * M_PI / 180);
+	// cout << "geo2dec: little_radius_at_latitude is " << little_radius_at_latitude << " m\n";
+
+	// cout << "geo2dec: x = " << little_radius_at_latitude * gp.x * M_PI / 180 << endl;
+	// cout << "geo2dec: y = " << METERS_IN_ONE_DEG * gp.y << endl;
+
+	return point(
+		little_radius_at_latitude * gp.x * M_PI / 180,
+		METERS_IN_ONE_DEG * gp.y
+	).to_origin_related(origin);
+}
+
+point dec2geo(const point &dp, const point &origin = point(0, 0))
+{
+	const point gdp = dp.to_global(origin);
+
+	double latitude = gdp.y / EQUATOR_LENGTH * 360.;	
+	// cout << fixed << setprecision(10) << "dec2geo: dp.y = " << dp.y << " ;\t" << "METERS_IN_ONE_DEG = " << METERS_IN_ONE_DEG << endl;
+	// cout << "dec2geo: dp.y / EQUATOR_LENGTH = " << dp.y / EQUATOR_LENGTH << endl;
+
+	// радиус Земли (от её центра к точке на поверхности заданной географической широты)
+	double earth_radius_at_latitude = EQUATOR_RADIUS * 
+								(1. - EARTH_FLATTENING * sqr(sin(latitude * M_PI / 180)));
+	// cout << "dec2geo: earth_radius_at_latitude is " << earth_radius_at_latitude << " m\n";
+
+	// радиус сечения Земли на заданной географической широте
+	double little_radius_at_latitude = earth_radius_at_latitude * cos(latitude * M_PI / 180);
+	// cout << "dec2geo: little_radius_at_latitude is " << little_radius_at_latitude << " m\n";
+
+	double 	longitude = gdp.x * 180. / M_PI / little_radius_at_latitude;	
+	// cout << "dec2geo: longitude = " << longitude << endl;			
+	// cout << "dec2geo: latitude = " << latitude << endl;	
+
+	return point(longitude, latitude);
+}
+
+
+void to_cartesian_cs(vector <movement> &mvn, point dcs_geo_origin)
+{
+	point dcs_dec_origin = geo2dec(dcs_geo_origin);
+
+	for (size_t j = 0; j < mvn.size(); ++j)
+	{
+		mvn[j].mv.start = geo2dec(mvn[j].mv.start, dcs_dec_origin);
+		mvn[j].mv.end = geo2dec(mvn[j].mv.end, dcs_dec_origin);
+	}
+}
+
 
 struct dt_result
 {

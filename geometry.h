@@ -29,14 +29,29 @@ struct point
 		return (x == p.x && y == p.y);
 	}
 
+	bool equal_eps(const point &p)
+	{
+		return (abs(x - p.x) < EPS && abs(y - p.y) < EPS);
+	}
+
 	double distance_to(point p)
 	{
 		return sqrt((x - p.x) * (x - p.x) + (y - p.y) * (y - p.y));
 	}
 
+	point to_origin_related(const point &p) const
+	{
+		return point(x - p.x, y - p.y);
+	}
+
+	point to_global(const point &p) const
+	{
+		return point(x + p.x, y + p.y);
+	}
+
 	string toString(string name = string(""))
 	{
-		char str[30];
+		char str[100];
 		sprintf(str, "%s(%2f, %2f)", name.c_str(), x, y);
 		return string(str);
 	}
