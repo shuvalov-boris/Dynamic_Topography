@@ -56,6 +56,7 @@ E_INTEGRATION_ERROR itg_err;
 class Integral
 {
 	scut cut;
+	point dcs_origin; // начало локальной Декартовой СК в глобальной ДСК
 	vector <wvector> wv;
 
 	int n; // количество интервалов разбиения
@@ -70,6 +71,7 @@ public:
 	~Integral();
 
 	void set_cut(scut c);
+	void set_dcs_origin(const point &dcs_orn);
 	void set_partitioning_count(int _n);
 	void set_filename(string filename);
 
@@ -84,10 +86,10 @@ double Integral::get_integration_error(vector <double> &val, double h, int n)
 	double err = 0.0;
 	for (int i = 0; i < val.size() - 1; ++i)
 	{
-		dv1[i] = abs(val[i + 1] - val[i]);
+		dv1[i] = fabs(val[i + 1] - val[i]);
 		if (i > 0) 
 		{
-			dv2[i - 1] = abs(dv1[i] - dv1[i - 1]);
+			dv2[i - 1] = fabs(dv1[i] - dv1[i - 1]);
 			err = max(err, dv2[i - 1]);
 		}
 	}
@@ -107,6 +109,11 @@ Integral::~Integral()
 void Integral::set_cut(scut c)
 {
 	cut = c;
+}
+
+void Integral::set_dcs_origin(const point &dcs_orn)
+{
+	dcs_origin = dcs_orn;
 }
 
 void Integral::set_partitioning_count(int _n)
@@ -136,10 +143,9 @@ itg_result Integral::take(E_PRINT_MODE pm = EPM_ON)
 	// refresh_cut();
 
 	double K = wv[0].mvn.mv.length() / wv[0].mvn.velocity;
-	// cout << "K = " << K << endl;
 
-	// int n = wv.size() * 2;
-	double h = cut.v().length() / n, h_m = D2M(cut.v().length()) / n;
+	double h = cut.v().length() * 1000 / n; // шаг в метрах
+	
 	double dx = (cut.end.x - cut.start.x) / n;
 	double dy = (cut.end.y - cut.start.y) / n;
 
@@ -153,10 +159,10 @@ itg_result Integral::take(E_PRINT_MODE pm = EPM_ON)
 
 	Interpolation itp(cut.v(), wv);
 
-	// if (cut.itp_diameter == -1)
-		// itp.calc_radius();
+	if (cut.itp_diameter == -1)
+		itp.calc_radius();
 	if (cut.itp_diameter >= 0.0) 
-		itp.set_radius(cut.itp_diameter / 2);
+		itp.set_radius(cut.itp_diameter / 2); // км -> м
 	if (cut.weight_coef >= 0.0) itp.set_weight_coef(cut.weight_coef);
 
 	double apr_err = 0.0;
@@ -184,7 +190,7 @@ itg_result Integral::take(E_PRINT_MODE pm = EPM_ON)
 		prnd.shorten(val[i] * K);
 
 		if (pm == EPM_ON)
-			fitp << prnd.toGlanceFormat();
+			fitp << prnd.at_geo_cs(dcs_origin).toGlanceFormat();
 
 		// fitg << "\t\t" << prnd.toString("avr vec") << endl;
 
@@ -214,7 +220,7 @@ itg_result Integral::take(E_PRINT_MODE pm = EPM_ON)
 		msd_sum += (itg_res.interpolation_accuracy - itp_acr[i]) * (itg_res.interpolation_accuracy - itp_acr[i]);
 	itg_res.ms_deviation = sqrt(msd_sum / count );
 
-	itg_res.step_size = h_m;
+	itg_res.step_size = h;
 	itg_res.step_count = step_count;
 	itg_res.itp_diameter = itp.get_radius() * 2;
 	itg_res.weight_coef = itp.get_weight_coef();	
@@ -225,13 +231,13 @@ itg_result Integral::take(E_PRINT_MODE pm = EPM_ON)
 
 	double sum = 0.0;
 	for (int i = 0; i < val.size(); ++i)
-		sum += val[i] * h_m;
+		sum += val[i] * h;
 
 	itg_res.value = sum;
 
 	if (pm == EPM_ON)
 	{
-		fitp << itg_res.v().toGlanceFormat();
+		fitp << itg_res.v().at_geo_cs(dcs_origin).toGlanceFormat();
 		fitp.close();
 	}
 
@@ -396,10 +402,10 @@ itg_result Integral::take(E_PRINT_MODE pm = EPM_ON)
 // 	double err = 0.0;
 // 	for (int i = 0; i < val.size() - 1; ++i)
 // 	{
-// 		dv1[i] = abs(val[i + 1] - val[i]);
+// 		dv1[i] = fabs(val[i + 1] - val[i]);
 // 		if (i > 0) 
 // 		{
-// 			dv2[i - 1] = abs(dv1[i] - dv1[i - 1]);
+// 			dv2[i - 1] = fabs(dv1[i] - dv1[i - 1]);
 // 			err = max(err, dv2[i - 1]);
 // 		}
 // 	}

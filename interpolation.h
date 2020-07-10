@@ -7,7 +7,8 @@
 #include <algorithm>
 #include <vector>
 
-#define WEIGHT_COEF 50.0
+#define WEIGHT_COEF 0.01
+#define WEIGHT_COEF_TRANSFORM 1. // потребовалось при переходе от градусов к метрам для сохранение прежней размерности WEIGHT_COEF
 
 class Interpolation
 {
@@ -54,15 +55,17 @@ double Interpolation::calc_weight_sum(vector <int> &idx, point pt, int omit_idx 
 {
 	double S = 0.0;
 	for (int j = 0; j < wv.size(); ++j)
-		if (omit_idx != j && pt.distance_to(wv[j].proj) <= R /*/ 2*/)
+	{
+		double r = pt.distance_to(wv[j].proj);
+		if (omit_idx != j && r <= R /*/ 2*/)
 		{
 			idx.push_back(j);
-			double r = pt.distance_to(wv[j].proj);
-
-			S += weight_func(r);
-
+			double wf = weight_func(r);
+			// cout << "for r = " << r << " weight func is " << wf << endl;
+			S += wf;
 			// flog << r << " ";
 		}
+	}
 	// flog << endl;
 
 	return S;
@@ -71,13 +74,14 @@ double Interpolation::calc_weight_sum(vector <int> &idx, point pt, int omit_idx 
 double Interpolation::get_interpolation_result(vector <int> &idx, point pt, double sum)
 {
 	if (sum == 0.0) return 0.0;
+
 	double val = 0.0;
-	
 	// flog << "sum elemnts\t";
 	for (int i = 0; i < idx.size(); ++i)
 	{
 		double r = pt.distance_to(wv[idx[i]].proj);
 		// double ang = cut_line.angle(wv[idx[i]].mvn.mv);
+		// cout << "get_norm_comp(idx[i]) = " << get_norm_comp(idx[i]) << endl;
 		val += get_norm_comp(idx[i]) * weight_func(r) / sum;
 		// flog << d << "," << r << ":" << func(r) << "," << func(r) / S << " ";
 		// flog << get_norm_comp(idx[i]) * weight_func(r) / sum << " ";
@@ -85,7 +89,7 @@ double Interpolation::get_interpolation_result(vector <int> &idx, point pt, doub
 	return val;
 }
 
-Interpolation::Interpolation(vec itv, vector <wvector> &_wv) : weight_coef(WEIGHT_COEF), interval(itv), wv(_wv)
+Interpolation::Interpolation(vec itv, vector <wvector> &_wv) : weight_coef(WEIGHT_COEF / WEIGHT_COEF_TRANSFORM), interval(itv), wv(_wv)
 {
 	R = itv.length();
 }
@@ -125,7 +129,7 @@ void Interpolation::set_radius(double _r)
 
 void Interpolation::set_weight_coef(double coef)
 {
-	weight_coef = coef;
+	weight_coef = coef * WEIGHT_COEF_TRANSFORM;
 }
 
 
@@ -136,7 +140,7 @@ double Interpolation::get_radius()
 
 double Interpolation::get_weight_coef()
 {
-	return weight_coef;
+	return weight_coef / WEIGHT_COEF_TRANSFORM;
 }
 
 double Interpolation::take_for(point pt)
@@ -146,6 +150,8 @@ double Interpolation::take_for(point pt)
 	vector <int> act_p_ind;
 
 	double S = calc_weight_sum(act_p_ind, pt);
+
+	// cout << " interpolation: take for: act_p_ind vector size is " << act_p_ind.size() << " & weight sum is " << S << endl;
 
 	val = get_interpolation_result(act_p_ind, pt, S);
 

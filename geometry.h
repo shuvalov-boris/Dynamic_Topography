@@ -5,13 +5,18 @@
 
 #include <cstdio>
 #include <cwchar>
+#include <iostream>
 #include <fstream>
 #include <string>
 #include <math.h>
 
-#define EPS 0.0000001
+// #include "dt_defs.h"
+
+#define EPS 1.e-5
 
 #define sign(a) (a == 0) ? 0.0 : (a < 0 ? -1.0 : 1.0)
+
+#define sqr(a) ((a)*(a))
 
 using namespace std; //	delete (escape it)
 
@@ -22,7 +27,7 @@ struct point
 
 	point() : x(0), y(0) {};
 	point(double a, double b) : x(a), y(b) {};
-	// point(const point &p) : x(p.x), y(p.y) {};
+	point(const point &p) : x(p.x), y(p.y) {};
 
 	bool equal(const point &p)
 	{
@@ -31,7 +36,7 @@ struct point
 
 	bool equal_eps(const point &p)
 	{
-		return (abs(x - p.x) < EPS && abs(y - p.y) < EPS);
+		return (fabs(x - p.x) < EPS && fabs(y - p.y) < EPS);
 	}
 
 	double distance_to(point p)
@@ -39,17 +44,44 @@ struct point
 		return sqrt((x - p.x) * (x - p.x) + (y - p.y) * (y - p.y));
 	}
 
-	point to_origin_related(const point &p) const
+	void to_related_cs(const point &origin)
 	{
-		return point(x - p.x, y - p.y);
+		x -= origin.x, y-= origin.y;
 	}
 
-	point to_global(const point &p) const
+	void to_global_cs(const point &origin)
 	{
-		return point(x + p.x, y + p.y);
+		x += origin.x, y+= origin.y;
 	}
 
-	string toString(string name = string(""))
+	// point at_related_cs(const point &p) const
+	// {
+	// 	return point(x - p.x, y - p.y);
+	// }
+
+	// point at_global_cs(const point &p) const
+	// {
+	// 	return point(x + p.x, y + p.y);
+	// }
+
+	void to_dec_cs(const point &origin);
+	void to_geo_cs(const point &origin);
+
+	point at_geo_cs(const point &origin) const
+	{
+		point pt(this->x, this->y);
+		pt.to_geo_cs(origin);
+		return pt;
+	}
+
+	point at_dec_cs(const point &origin) const
+	{
+		point pt(this->x, this->y);
+		pt.to_dec_cs(origin);
+		return pt;
+	}
+
+	string toString(string name = string("")) const
 	{
 		char str[100];
 		sprintf(str, "%s(%2f, %2f)", name.c_str(), x, y);
@@ -58,6 +90,7 @@ struct point
 
 };
 
+//todo если создать vec из двух point, а затем последние изменить, то изменится ли vec?
 struct vec
 {
 	point start;
@@ -109,9 +142,14 @@ struct vec
 		return string(str);
 	}
 
+	vec at_geo_cs(const point &origin)
+	{
+		return vec(this->start.at_geo_cs(origin), this->end.at_geo_cs(origin));
+	}
+
 	string toGlanceFormat()
 	{
-		char str[100];
+		char str[200];
 		sprintf(str, "TYPE = VECTOR\tCOLOR = 14\tWIDTH = 1\tSCALE = 1.00\tGEO = (%2f,%2f %2f,%2f)\n",
 					 start.x, start.y, end.x, end.y);
 		return string(str);
@@ -146,10 +184,12 @@ public:
 	double angle(vec v);
 
 	point intersection(Line l);
-	point projection(point p);
+	point projection_of(point p);
 
 	vec perpendicular(point p);
 	Line parallel(point p);
+
+	string as_string(string name = string("")) const;
 };
 
 Line::Line() : a(0), b(0), c(0), p1(point(0, 0)), p2(point(0, 0)) {}
@@ -225,6 +265,8 @@ bool is_t(double numerator, double denominator)
 
 bool Line::contains(point p)
 {
+	// if (f(p) > EPS)
+		// cout << p.toString("for pt") << " f(pt) > EPS;\t f(pt) = " << f(p) << endl;
 	return fabs(f(p)) < EPS && is_t(p.x - p1.x, p2.x - p1.x) && is_t(p.y - p1.y, p2.y - p1.y);
 }
 
@@ -248,9 +290,10 @@ point Line::intersection(Line l)
 	return point(x, y);
 }
 
-point Line::projection(point p)
+point Line::projection_of(point p)
 {
-	Line l = perpendicular(p);
+	Line l = this->perpendicular(p);
+	// cout << l.as_string("vel vec prnd cut line") << endl;
 	return intersection(l);
 }
 
@@ -262,6 +305,13 @@ vec Line::perpendicular(point p)
 Line Line::parallel(point p)
 {
 	return Line(get_a(), get_b(), -(get_a() * p.x + get_b() * p.y));
+}
+
+string Line::as_string(string name) const
+{
+	char str[200];
+	sprintf(str, "%s:\t%s; %s; (a=%2f, b=%2f, c=%2f)", name.c_str(), p1.toString("p1").c_str(), p2.toString("p2").c_str(), a, b, c);
+	return string(str);
 }
 /*
 double sign(double arg);
