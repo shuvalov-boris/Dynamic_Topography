@@ -43,7 +43,7 @@ void print_eng_usage()
 		<< "\t\tgeo longitude end\n"
 		<< "\t\tgeo latitude end\n"
 		<< "\t\tcut width (radius), [km]\tor -1 by default (10 km)\n"
-		<< "\t\tinterpolation interval (diameter), [km]\tor -1 by default\n"
+		<< "\t\tinterpolation interval (diameter), [km]\tor -1 by calculation\n"
 		<< "\t\tweight coefficient\tor -1 by default\n"
 
 		<< "\t<dt_out_file>\t\tfile for result output\n"
@@ -101,8 +101,6 @@ void read_cuts(char *file_name, vector <scut> &cut)
 	fstream fcut;
 	fcut.open(file_name);
 	double gsx, gsy, gex, gey, cut_width, itp_diameter, weight_coef;
-
-	const char *dm = " \t";
 
 	while (fcut >> gsx >> gsy >> gex >> gey >> cut_width >> itp_diameter >> weight_coef)
 	{

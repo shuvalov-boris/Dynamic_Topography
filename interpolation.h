@@ -54,10 +54,10 @@ double Interpolation::weight_func(double r)
 double Interpolation::calc_weight_sum(vector <int> &idx, point pt, int omit_idx = -1)
 {
 	double S = 0.0;
-	for (int j = 0; j < wv.size(); ++j)
+	for (size_t j = 0; j < wv.size(); ++j)
 	{
 		double r = pt.distance_to(wv[j].proj);
-		if (omit_idx != j && r <= R /*/ 2*/)
+		if ((size_t)omit_idx != j && r <= R /*/ 2*/)
 		{
 			idx.push_back(j);
 			double wf = weight_func(r);
@@ -77,7 +77,7 @@ double Interpolation::get_interpolation_result(vector <int> &idx, point pt, doub
 
 	double val = 0.0;
 	// flog << "sum elemnts\t";
-	for (int i = 0; i < idx.size(); ++i)
+	for (size_t i = 0; i < idx.size(); ++i)
 	{
 		double r = pt.distance_to(wv[idx[i]].proj);
 		// double ang = cut_line.angle(wv[idx[i]].mvn.mv);
@@ -96,30 +96,21 @@ Interpolation::Interpolation(vec itv, vector <wvector> &_wv) : weight_coef(WEIGH
 
 void Interpolation::calc_radius()
 {
-	double _min, _max, res;
+	double res;
 	vector <double> dist;
-	_min = _max = interval.start.distance_to(wv[0].proj);
-	for (int i = 0 ; i < wv.size(); ++i)
+	for (size_t i = 0 ; i < wv.size(); ++i)
 	{
 		double d = interval.start.distance_to(wv[i].proj);
 		dist.push_back(d);
-		// _min = min(_min, d);
-		// _max = max(_max, d);
 	}
 	sort(dist.begin(), dist.end());
-	// res = max(dist.front(), dist_pp(st.start, st.end) - dist.back());
+	
 	res = 0.0;
-	for (int i = 1; i < dist.size(); ++i)
+	for (size_t i = 1; i < dist.size(); ++i)
 	{
 		res = max(res, dist[i] - dist[i - 1]);
-		// cout << dist[i] - dist[i - 1] << " ";
 	}
-	// cout << endl;
-	// print_array(dist, "after sorting");
-	// flog << "result is " << res << endl;
 	R = res * 1.5;
-	// cout << "h = " << h << endl;
-	// cout << "r = " << res << endl;
 }
 
 void Interpolation::set_radius(double _r)
@@ -166,7 +157,7 @@ void Interpolation::calc_accuracy(vector <double> &err)
 	vector <double> nc;
 	vector <double> sum;
 
-	for (int i = 0; i < wv.size(); ++i)
+	for (size_t i = 0; i < wv.size(); ++i)
 	{
 		act_p_ind.clear();
 

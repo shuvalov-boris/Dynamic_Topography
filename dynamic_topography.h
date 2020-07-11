@@ -42,18 +42,20 @@ struct dt_result
 	int step_count;
 	int vector_count;
 	double itp_diameter;
-	double weight_coef;	
+	double weight_coef;
+
 
 	dt_result() {}
 
-	dt_result(itg_result ir, double cut_width, int vc = 0) : 
+	dt_result(itg_result ir, double cut_width, int vc) : 
 		cut(scut(ir.v(), cut_width)), dt(ir.value),
 		interpolation_accuracy(ir.interpolation_accuracy),
-		integration_error(ir.integration_error), ms_deviation(ir.ms_deviation), cut_length(ir.v().length()),
-		dt_coef(0.), dt_error(-1.0), a_priori_error(1.0), step_count(ir.step_count), vector_count(vc), 
-		step_size(ir.step_size), itp_diameter(ir.itp_diameter), weight_coef(ir.weight_coef) 
+		integration_error(ir.integration_error), dt_error(-1.0), a_priori_error(1.0), 
+		ms_deviation(ir.ms_deviation), step_size(ir.step_size), step_count(ir.step_count), 
+		vector_count(vc), itp_diameter(ir.itp_diameter), weight_coef(ir.weight_coef) 
 	{
 
+		cut_length = ir.v().length();
 
 		// switch (itg_err)
 		// {
@@ -142,7 +144,7 @@ public:
 
 };
 
-DynamicTopography::DynamicTopography(vector <movement> &m) : mvn(m), cut(vec(point(0, 0), point(0, 0)), 0.0)
+DynamicTopography::DynamicTopography(vector <movement> &m) : mvn(m)
 {
 
 }
@@ -245,7 +247,7 @@ int DynamicTopography::take(struct dt_result &dtr)
 	dtr = dt_result(integral.take(), cut.width, wv.size());	
 
 	integral.set_partitioning_count(wv.size() * 10);
-	struct dt_result dtr2(integral.take(EPM_ON), cut.width);
+	struct dt_result dtr2(integral.take(EPM_ON), cut.width, wv.size());
 	
 	if (itg_err == EIE_SUCCESS) dtr.a_priori_error = apr_err / apr_err_count;
 	dtr.dt_error = fabs(dtr.dt - dtr2.dt) * dtr.dt_coef;

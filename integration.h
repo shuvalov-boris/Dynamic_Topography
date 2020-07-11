@@ -162,11 +162,11 @@ itg_result Integral::take(E_PRINT_MODE pm = EPM_ON)
 	if (cut.itp_diameter == -1)
 		itp.calc_radius();
 	if (cut.itp_diameter >= 0.0) 
-		itp.set_radius(cut.itp_diameter / 2); // км -> м
+		itp.set_radius(cut.itp_diameter / 2);
 	if (cut.weight_coef >= 0.0) itp.set_weight_coef(cut.weight_coef);
 
-	double apr_err = 0.0;
-	int apr_err_count = 0;
+	// double apr_err = 0.0;
+	// int apr_err_count = 0;
 
 	int step_count = 0;
 
@@ -180,7 +180,7 @@ itg_result Integral::take(E_PRINT_MODE pm = EPM_ON)
 
 		// fitg << gr1.toString("gr1") << "\t" << gr2.toString("gr2") << "\t\ti = " << i << endl;
 
-		bool to_start = false, to_end = false;		
+		// bool to_start = false, to_end = false;		
 
 		val[i] = itp.take_for(gr_avr);
 
@@ -230,7 +230,7 @@ itg_result Integral::take(E_PRINT_MODE pm = EPM_ON)
 	// print_array(val, "calculated avrage value in metres is");
 
 	double sum = 0.0;
-	for (int i = 0; i < val.size(); ++i)
+	for (size_t i = 0; i < val.size(); ++i)
 		sum += val[i] * h;
 
 	itg_res.value = sum;

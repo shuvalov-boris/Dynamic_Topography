@@ -14,7 +14,7 @@
 
 #define EPS 1.e-5
 
-#define sign(a) (a == 0) ? 0.0 : (a < 0 ? -1.0 : 1.0)
+#define sign(a) ((a == 0) ? 0.0 : (a < 0 ? -1.0 : 1.0))
 
 #define sqr(a) ((a)*(a))
 
@@ -53,16 +53,6 @@ struct point
 	{
 		x += origin.x, y+= origin.y;
 	}
-
-	// point at_related_cs(const point &p) const
-	// {
-	// 	return point(x - p.x, y - p.y);
-	// }
-
-	// point at_global_cs(const point &p) const
-	// {
-	// 	return point(x + p.x, y + p.y);
-	// }
 
 	void to_dec_cs(const point &origin);
 	void to_geo_cs(const point &origin);

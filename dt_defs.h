@@ -8,7 +8,6 @@
 
 #include "geometry.h"
 
-// TODO расчет относительно широты координат вектора будет более точным
 // #define EQUATOR_LENGTH 40075686. // [meters]
 #define MERIDIAN_LENGTH 40008600 // [meters]
 #define EQUATOR_RADIUS  6378245. // [meters]
