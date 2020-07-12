@@ -12,12 +12,9 @@
 
 #define MIN_POINT_COUNT 10
 
-enum E_INTEGRATION_ERROR
-{
-	EIE_SUCCESS,
-	EIE_NOT_ENOUGH_DATA,
-	EIE_OTHER
-};
+// коды ошибок при расчете интеграла
+#define EC_ITG_SUCCESS 1000
+#define EC_ITG_NOT_ENOUGH_DATA 2004
 
 enum E_INTERPOLATION_MODE
 {
@@ -33,30 +30,27 @@ enum E_PRINT_MODE
 
 struct itg_result
 {
-	point start;
-	point end;
 	double value;
-	double interpolation_accuracy;
-	double integration_error;
-	double ms_deviation; //mean-square deviation
+	double interpolation_accuracy; // точность интерполяции
+	double integration_error; // ошибка расчета интеграла
+	double ms_deviation; // mean-square deviation
 	double step_size;
 	double step_count;
 	double itp_diameter;
 	double weight_coef;
-	itg_result(vec v) : start(v.start), end(v.end), value(0.0), interpolation_accuracy(1.0), 
-	integration_error(1.0), ms_deviation(1.0), step_size(0.0), step_count(0),
-	itp_diameter(0.0), weight_coef(0.0) {}
 
-	vec v() { return vec(start, end); }
+	itg_result() : value(0.0), interpolation_accuracy(1.0), integration_error(1.0), 
+		ms_deviation(1.0), step_size(0.0), step_count(0), itp_diameter(0.0), weight_coef(0.0)
+	{}
 };
 
 ofstream fAV;
-E_INTEGRATION_ERROR itg_err;
+// E_INTEGRATION_ERROR itg_err;
 
 class Integral
 {
 	scut cut;
-	point dcs_origin; // начало локальной Декартовой СК в глобальной ДСК
+	point dcs_origin;
 	vector <wvector> wv;
 
 	int n; // количество интервалов разбиения
@@ -75,7 +69,7 @@ public:
 	void set_partitioning_count(int _n);
 	void set_filename(string filename);
 
-	itg_result take(E_PRINT_MODE pm);
+	int take(struct itg_result &itg_res, E_PRINT_MODE pm);
 };
 
 /*
@@ -126,19 +120,13 @@ void Integral::set_filename(string filename)
 	fitp.open(filename.c_str());
 }
 
-itg_result Integral::take(E_PRINT_MODE pm = EPM_ON)
+int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm = EPM_ON)
 {
-
-	itg_result itg_res(cut.v());
-
 	if (wv.size() < MIN_POINT_COUNT)
 	{
-		itg_err = EIE_NOT_ENOUGH_DATA;
-		return itg_res;
+		cerr << "Error: not enough data to calculate the integral\n";
+		return EC_ITG_NOT_ENOUGH_DATA;
 	}
-	else itg_err = EIE_SUCCESS;
-
-	// fitp.open(filename.c_str());
 
 	// refresh_cut();
 
@@ -179,8 +167,6 @@ itg_result Integral::take(E_PRINT_MODE pm = EPM_ON)
 		point gr_avr = vec(gr1, gr2).middle();
 
 		// fitg << gr1.toString("gr1") << "\t" << gr2.toString("gr2") << "\t\ti = " << i << endl;
-
-		// bool to_start = false, to_end = false;		
 
 		val[i] = itp.take_for(gr_avr);
 
@@ -237,11 +223,11 @@ itg_result Integral::take(E_PRINT_MODE pm = EPM_ON)
 
 	if (pm == EPM_ON)
 	{
-		fitp << itg_res.v().at_geo_cs(dcs_origin).toGlanceFormat();
+		fitp << cut.v().at_geo_cs(dcs_origin).toGlanceFormat();
 		fitp.close();
 	}
 
-	return itg_res;
+	return EC_ITG_SUCCESS;
 }
 
 /*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/

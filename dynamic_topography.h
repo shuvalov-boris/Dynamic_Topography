@@ -31,83 +31,37 @@ struct dt_result
 {
 	scut cut; 					// разрез
 	double dt; 					// динамическая топография
-	double interpolation_accuracy; //точность интерполяции
-	double integration_error;	// ошибка расчета
+	struct itg_result itg_res;
 	double dt_error;			// разность двух значени ДТ с разным количеством интервалов
 	double a_priori_error; 		// апроиорная ошибка
-	double ms_deviation;		// среднеквадратичное отклонение
 	double cut_length;
 	double dt_coef;
-	double step_size;
-	int step_count;
 	int vector_count;
-	double itp_diameter;
-	double weight_coef;
 
+	dt_result() : dt_error(-1.0), a_priori_error(-1.0)
+	{}
 
-	dt_result() {}
-
-	dt_result(itg_result ir, double cut_width, int vc) : 
-		cut(scut(ir.v(), cut_width)), dt(ir.value),
-		interpolation_accuracy(ir.interpolation_accuracy),
-		integration_error(ir.integration_error), dt_error(-1.0), a_priori_error(1.0), 
-		ms_deviation(ir.ms_deviation), step_size(ir.step_size), step_count(ir.step_count), 
-		vector_count(vc), itp_diameter(ir.itp_diameter), weight_coef(ir.weight_coef) 
+	void set(scut _cut, int vc) 
 	{
-
-		cut_length = ir.v().length();
-
-		// switch (itg_err)
-		// {
-		// 	case EIE_SUCCESS:
-		// 	{
-		// 		error = itg_res.error;
-		// 		break;
-		// 	}
-		// 	case EIE_NOT_ENOUGH_DATA:
-		// 	{
-		// 		error = 1000.0;
-		// 		break;
-		// 	}
-		// 	case EIE_OTHER:
-		// 	{
-		// 		error = 1.0;
-		// 		break;
-		// 	}
-		// 	default: 
-		// 	{
-		// 		break;
-		// 	}
-					
-		// }
+		cut = _cut;
+		vector_count = vc;
+		cut_length = _cut.v().length();
 	}
 
 	void calc_dt(double latitude)
 	{
 		dt_coef = dyn_top_koef(latitude);
-		dt *= dt_coef; // dt = integral.value * k
+		dt = itg_res.value * dt_coef; 
 		// interpolation_accuracy *= k; 
 	}
-
-	// string toDTFormat()
-	// {
-	// 	char str[200];
-	// 	sprintf(str, "%2f %2f %2f %2f %2f %2f %2f %2f %2e %2f %2f %2f %2f %2f %2f %2f %d %d", 
-	// 			cut.start.x, cut.start.y, cut.end.x, cut.end.y, dt, 
-	// 			cut.width, itp_diameter, weight_coef, 
-	// 			dt_error, interpolation_accuracy, integration_error, ms_deviation, a_priori_error,
-	// 			cut.v().length(), dt,
-	// 			step_size, step_count, vector_count);
-	// 	return string(str);
-	// }
 
 	void print_to(ofstream &file)
 	{
 		file << cut.start.x << " " << cut.start.y << " " << cut.end.x << " " << cut.end.y << " " << dt << " " << 
-			cut.width << " " << itp_diameter << " " << weight_coef * 1000 << " " << 
-			dt_error << " " << interpolation_accuracy << " " << integration_error << " " << ms_deviation << " " << a_priori_error << " " <<
-			cut_length << " " << dt_coef << " " <<
-			step_size * 1000 << " " << step_count << " " << vector_count << endl;
+			cut.width << " " << itg_res.itp_diameter << " " << itg_res.weight_coef << " " << 
+			dt_error << " " << itg_res.interpolation_accuracy << " " << itg_res.integration_error << " " 
+			<< itg_res.ms_deviation << " " << a_priori_error << " " << cut_length << " " << dt_coef << " " <<
+			itg_res.step_size * 1000 << " " << itg_res.step_count << " " << vector_count << endl;
 	}
 };
 
@@ -128,7 +82,7 @@ string get_AV_filename(int ind)
 class DynamicTopography
 {
 	scut cut;
-	point dcs_origin; // начало локальной Декартовой СК в глобальной ДСК
+	point dcs_origin; // начало локальной Декартовой СК в географических координатах
 	vector <movement> mvn;
 
 	ofstream fNV;
@@ -140,7 +94,7 @@ public:
 	void set_file_index(int index);
 	void set_cut(scut c);
 	void set_dcs_origin(const point &dcs_orn);
-	int take(struct dt_result &dtr);
+	int take(struct dt_result &dt_res);
 
 };
 
@@ -165,7 +119,7 @@ void DynamicTopography::set_dcs_origin(const point &dcs_orn)
 	dcs_origin = dcs_orn;
 }
 
-int DynamicTopography::take(struct dt_result &dtr)
+int DynamicTopography::take(struct dt_result &dt_res)
 {
 	fNV.open(get_NV_filename(file_index).c_str());
 	vector <wvector> wv;
@@ -178,23 +132,14 @@ int DynamicTopography::take(struct dt_result &dtr)
 	double apr_err = 0.0;
 	int apr_err_count = 0;
 
-	int along_line_count = 0;
-	// ofstream fUV;
-	// fUV.open("UV1.vec");
 	for (size_t j = 0; j < mvn.size(); ++j)
-	{
-						
+	{						
 		double dist_to_vec = cut_line.distance_to(mvn[j].mv.start);
 
 		if (fabs(dist_to_vec) < cut.width && mvn[j].velocity > 0)
 		{
-			along_line_count++;
-
-			// fUV << mvn[j].mv.at_geo_cs(dcs_origin).toGlanceFormat();
-			
 			// проекция начала вектора скорости на разрез
 			point prj = cut_line.projection_of(mvn[j].mv.start);
-
 			
 			if (cut_line.contains(prj))
 			{
@@ -202,8 +147,6 @@ int DynamicTopography::take(struct dt_result &dtr)
 				Line prl = cut_line.parallel(mvn[j].mv.end);
 				// проекция начала вектора скорости на прямую prl (!) 
 				point norm = prl.projection_of(mvn[j].mv.start);
-
-				// flog << "\t\t" << mvn[j].mv.toString("mv") << "\t" << ppt.toString("NV") << endl;
 
 				wv.push_back(wvector(mvn[j], norm, prj));
 
@@ -225,11 +168,7 @@ int DynamicTopography::take(struct dt_result &dtr)
 			}
 		}
 	}
-	// fUV.close();
 	cut.start = start, cut.end = end;
-
-	// cout << "along_line_count is " << along_line_count << endl;
-	// cout << "wv size is " << wv.size() << endl;
 
 	if (wv.empty())
 	{
@@ -237,27 +176,32 @@ int DynamicTopography::take(struct dt_result &dtr)
 		return EC_DT_FVF_EMPTY;
 	}
 
-	// cout << start.toString("start") << "\t" << end.toString("end") << endl;
-
 	Integral integral(cut, wv);
 	integral.set_filename(get_AV_filename(file_index));
 	integral.set_dcs_origin(dcs_origin);
 
-	integral.set_partitioning_count(wv.size() * 5);
-	dtr = dt_result(integral.take(), cut.width, wv.size());	
+	// расчёт интеграла
+	integral.set_partitioning_count(wv.size() * 5);	
+	int itg_code_error = integral.take(dt_res.itg_res);
+	if (itg_code_error != EC_ITG_SUCCESS) 
+		return itg_code_error;
 
+	// расчет перепада ДТ по результатам интегрирования
+	dt_res.calc_dt(dcs_origin.y);
+
+	dt_res.set(cut, wv.size());
+	dt_res.a_priori_error = apr_err / apr_err_count;
+
+	// расчет ошибки интегрирования
 	integral.set_partitioning_count(wv.size() * 10);
-	struct dt_result dtr2(integral.take(EPM_ON), cut.width, wv.size());
-	
-	if (itg_err == EIE_SUCCESS) dtr.a_priori_error = apr_err / apr_err_count;
-	dtr.dt_error = fabs(dtr.dt - dtr2.dt) * dtr.dt_coef;
+	struct itg_result itg_res_2;
+	itg_code_error = integral.take(itg_res_2);
+	dt_res.dt_error = fabs(dt_res.itg_res.value - itg_res_2.value) * dt_res.dt_coef;
 
-	dtr.calc_dt(dcs_origin.y);
+	dt_res.cut.start.to_geo_cs(dcs_origin);
+	dt_res.cut.end.to_geo_cs(dcs_origin);
 
-	dtr.cut.start.to_geo_cs(dcs_origin);
-	dtr.cut.end.to_geo_cs(dcs_origin);
-
-	fNV << dtr.cut.v().toGlanceFormat(); // зачем? чтоб выделить разрез?
+	fNV << dt_res.cut.v().toGlanceFormat(); // рисуем разрез вектором
 	fNV.close();
 
 	return EC_DT_SUCCESS;
