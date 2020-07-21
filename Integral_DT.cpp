@@ -82,7 +82,7 @@ void print_file_formats()
 
 void print_version()
 {
-	cout << "Integral_DT release data - 12 July 2020\n";
+	cout << "Integral_DT release data - 21 July 2020\n";
 }
 
 char* move_points_file;
@@ -186,6 +186,7 @@ void calculate_dyn_top()
 	fDSC.open("DSC.txt");
 	for (size_t i = 0; i < mvn.size(); i++)
 		fDSC << mvn[i].mv.start.x << " " << mvn[i].mv.start.y << " " << mvn[i].mv.end.x << " " << mvn[i].mv.end.y << endl;
+	fDSC << station[0].start.x << " " << station[0].start.y << " " << station[0].end.x << " " << station[0].end.y << endl;
 	fDSC.close();
 
 	fres.open(out_file);

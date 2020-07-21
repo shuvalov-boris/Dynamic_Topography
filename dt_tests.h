@@ -41,12 +41,11 @@ void test_geo2dec2geo(vector <movement> &mvn, point dcs_geo_origin)
 
 	for (size_t j = 0; j < mvn.size(); ++j)
 	{
-		point p0 = geo2dec(mvn[j].mv.start, dcs_geo_origin);
-		point g0 = dec2geo(p0, dcs_geo_origin);
+		point p0 = mvn[j].mv.start.at_dec_cs(dcs_geo_origin);
+		point g0 = p0.at_geo_cs(dcs_geo_origin);
 		
-		point p1 = geo2dec(mvn[j].mv.end, dcs_geo_origin);
-		point g1 = dec2geo(p1, dcs_geo_origin);
-		
+		point p1 = mvn[j].mv.end.at_dec_cs(dcs_geo_origin);
+		point g1 = p1.at_geo_cs(dcs_geo_origin);		
 
 		f_dec_mvn << fixed << p0.x << " " << p0.y << " " << p1.x << " " << p1.y << endl;
 		f_geo_again << fixed << g0.x << " " << g0.y << " " << g1.x << " " << g1.y << endl;
@@ -56,14 +55,14 @@ void test_geo2dec2geo(vector <movement> &mvn, point dcs_geo_origin)
 			cout << "j = " << j << ": FAIL\n";
 			if (mvn[j].mv.start.equal_eps(g0) == false)
 			{
-				cout << fixed << setprecision(10) << mvn[j].mv.start.toString("origin geo 0") << endl;
-				cout << g0.toString("transformed geo 0") << endl;
+				cout << fixed << setprecision(10) << mvn[j].mv.start.toString("origin geo 0 ") << endl;
+				cout << g0.toString("transformed geo 0 ") << endl;
 			}
 
 			if (mvn[j].mv.end.equal_eps(g1) == false)
 			{
-				cout << fixed << setprecision(10) << mvn[j].mv.end.toString("origin geo 1") << endl;
-				cout << g1.toString("transformed geo 1") << endl;
+				cout << fixed << setprecision(10) << mvn[j].mv.end.toString("origin geo 1 ") << endl;
+				cout << g1.toString("transformed geo 1 ") << endl;
 			}
 
 			failed_tests_amount++;

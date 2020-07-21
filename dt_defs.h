@@ -9,7 +9,7 @@
 #include "geometry.h"
 
 // #define EQUATOR_LENGTH 40075686. // [meters]
-#define MERIDIAN_LENGTH 40008600 // [meters]
+#define MERIDIAN_LENGTH 40008600. // [meters]
 #define EQUATOR_RADIUS  6378245. // [meters]
 #define POLAR_RADIUS    6356863. // [meters]
 #define EARTH_FLATTENING (EQUATOR_RADIUS - POLAR_RADIUS) / EQUATOR_RADIUS // [meters] - полярное сжатие Земли
@@ -50,14 +50,14 @@ struct scut // Разрез
 
 	scut(vec v, double w, double id = 0.0, double wc = 0.0) : 
 		start(v.start), end(v.end), width(w),
-		itp_diameter(id), weight_coef(wc) {}
+		itp_diameter(id), weight_coef(wc / 1000) {}
 
 	vec v()	{ return vec(start, end); }
 
 	string toString(string name = string(""))
 	{
 		char str[30];
-		sprintf(str, "%s(%2f, %2f)", name.c_str(), width, weight_coef);
+		sprintf(str, "%s(%2f, %2f)", name.c_str(), width, weight_coef * 1000);
 		return string(str);
 	}
 };
@@ -80,13 +80,15 @@ point dec2geo(const point &dp, const point &origin = point(0, 0))
 // origin - в географических координатах
 void point::to_dec_cs(const point &origin) 
 {
+	float latitude = this->y;
+
 	this->to_related_cs(origin);
 
 	// радиус Земли (от её центра к точке на поверхности заданной географической широты)
-	double earth_radius_at_latitude = EQUATOR_RADIUS * (1. - EARTH_FLATTENING * sqr(sin(this->y * M_PI / 180)));
+	double earth_radius_at_latitude = EQUATOR_RADIUS * (1. - EARTH_FLATTENING * sqr(sin(latitude * M_PI / 180)));
 
 	// радиус сечения Земли на заданной географической широте
-	double little_radius_at_latitude = earth_radius_at_latitude * cos(this->y * M_PI / 180);
+	double little_radius_at_latitude = earth_radius_at_latitude * cos(latitude * M_PI / 180);
 
 	this->x *= little_radius_at_latitude * M_PI / 180;
 	this->y *= METERS_IN_ONE_DEG;
@@ -103,21 +105,19 @@ void point::to_geo_cs(const point &origin)
 	this->y = this->y / MERIDIAN_LENGTH * 360.;	
 	// cout << fixed << setprecision(10) << "to_geo_cs: gdp.y = " << this->y << endl;
 
+	float latitude = this->y + origin.y;
+	// cout << fixed << setprecision(14) << "to_geo: latitude is " << latitude << endl;
+
 	// радиус Земли (от её центра к точке на поверхности заданной географической широты)
 	double earth_radius_at_latitude = EQUATOR_RADIUS * 
-								(1. - EARTH_FLATTENING * sqr(sin(this->y * M_PI / 180)));
-	// cout << "to_geo_cs: earth_radius_at_latitude is " << earth_radius_at_latitude << " m\n";
+								(1. - EARTH_FLATTENING * sqr(sin(latitude * M_PI / 180)));
 
 	// радиус сечения Земли на заданной географической широте
-	double little_radius_at_latitude = earth_radius_at_latitude * cos(this->y * M_PI / 180);
-	// cout << "to_geo_cs: little_radius_at_latitude is " << little_radius_at_latitude << " m\n";
+	double little_radius_at_latitude = earth_radius_at_latitude * cos(latitude * M_PI / 180);
 
 	this->x *= 180. / M_PI / little_radius_at_latitude;
-	// cout << "to_geo_cs: longitude = " << this->x << endl;			
-	// cout << "to_geo_cs: latitude = " << this->y << endl;	
 
 	this->to_global_cs(origin);
-	// cout << fixed << setprecision(10) << "to_geo_cs: " << this->toString("pt at global DCS") << endl;
 }
 
 
@@ -125,15 +125,11 @@ void to_cartesian_cs(vector <movement> &mvn, vector <scut> &station)
 {
 	point dcs_dec_origin = station[0].v().middle(); // not dec but geo -> rename variable
 
-	ofstream f_dec_mvn_1;
-	f_dec_mvn_1.open("dec_mvn_1.txt");
 	for (size_t j = 0; j < mvn.size(); ++j)
 	{
 		mvn[j].mv.start.to_dec_cs(dcs_dec_origin);
 		mvn[j].mv.end.to_dec_cs(dcs_dec_origin);
-		f_dec_mvn_1 << mvn[j].mv.start.toString() << "   " << mvn[j].mv.end.toString() << endl;
 	}
-	f_dec_mvn_1.close();
 
 	for (size_t j = 0; j < station.size(); ++j)
 	{

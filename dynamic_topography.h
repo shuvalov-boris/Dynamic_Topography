@@ -58,7 +58,7 @@ struct dt_result
 	void print_to(ofstream &file)
 	{
 		file << cut.start.x << " " << cut.start.y << " " << cut.end.x << " " << cut.end.y << " " << dt << " " << 
-			cut.width << " " << itg_res.itp_diameter << " " << itg_res.weight_coef << " " << 
+			cut.width << " " << itg_res.itp_diameter << " " << itg_res.weight_coef * 1000 << " " << 
 			dt_error << " " << itg_res.interpolation_accuracy << " " << itg_res.integration_error << " " 
 			<< itg_res.ms_deviation << " " << a_priori_error << " " << cut_length << " " << dt_coef << " " <<
 			itg_res.step_size * 1000 << " " << itg_res.step_count << " " << vector_count << endl;
@@ -132,6 +132,12 @@ int DynamicTopography::take(struct dt_result &dt_res)
 	double apr_err = 0.0;
 	int apr_err_count = 0;
 
+	ofstream fNVdec;
+	fNVdec.open("NVdec.txt");
+
+	ofstream fNVgeo;
+	fNVgeo.open("NVgeo.txt");
+
 	for (size_t j = 0; j < mvn.size(); ++j)
 	{						
 		double dist_to_vec = cut_line.distance_to(mvn[j].mv.start);
@@ -165,6 +171,13 @@ int DynamicTopography::take(struct dt_result &dt_res)
 				++apr_err_count;
 
 				fNV << vec(mvn[j].mv.start, norm).at_geo_cs(dcs_origin).toGlanceFormat();
+
+				fNVdec << mvn[j].mv.start.x << " " << mvn[j].mv.start.y << " " << 
+								norm.x << " " << norm.y << "\n";
+
+				vec v = vec(mvn[j].mv.start, norm).at_geo_cs(dcs_origin);
+				fNVgeo << v.start.x << " " << v.start.y << " " << 
+								v.end.x << " " << v.end.y << "\n";
 			}
 		}
 	}
@@ -198,11 +211,21 @@ int DynamicTopography::take(struct dt_result &dt_res)
 	itg_code_error = integral.take(itg_res_2);
 	dt_res.dt_error = fabs(dt_res.itg_res.value - itg_res_2.value) * dt_res.dt_coef;
 
+	fNVdec << " " << dt_res.cut.start.x << " " << dt_res.cut.start.y << " " << 
+				dt_res.cut.end.x << " " << dt_res.cut.end.y << "\n";
+	fNVdec.close();
+
 	dt_res.cut.start.to_geo_cs(dcs_origin);
 	dt_res.cut.end.to_geo_cs(dcs_origin);
 
+	fNVgeo << " " << dt_res.cut.start.x << " " << dt_res.cut.start.y << " " << 
+				dt_res.cut.end.x << " " << dt_res.cut.end.y << "\n";
+	fNVgeo.close();
+
 	fNV << dt_res.cut.v().toGlanceFormat(); // рисуем разрез вектором
 	fNV.close();
+
+
 
 	return EC_DT_SUCCESS;
 }
