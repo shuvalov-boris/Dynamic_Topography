@@ -171,41 +171,6 @@ void Interpolation::calc_accuracy(vector <double> &err)
 		nc.push_back(get_norm_comp(i));
 		sum.push_back(S);
 	}
-/*
-	cout << "sum: ";
-	for (int i = 0; i < sum.size(); ++i)
-		cout << sum[i] << " ";
-	cout << endl;
-
-	cout << "interpolation: ";
-	for (int i = 0; i < vl.size(); ++i)
-		cout << vl[i] << " ";
-	cout << endl;
-
-	cout << "norm comp: ";
-	for (int i = 0; i < nc.size(); ++i)
-		cout << nc[i] << " ";
-	cout << endl;	
-
-	double _s = 0.0, _ss = 0.0;
-	cout << "accuracy: ";
-	for (int i = 0; i < nc.size(); ++i)
-	{
-		cout << vl[i] - nc[i] << " ";
-		_s += vl[i] - nc[i];
-		_ss += (vl[i] - nc[i]) * (vl[i] - nc[i]);
-	}
-	cout << endl;
-
-	double s = 0.0;
-	for (int i = 0; i < err.size(); ++i)
-		s += err[i];
-
-	cout << "err sum is " << s << endl;
-	cout << "err size is " << err.size() << endl << endl;
-
-	cout << "sum " << _s << endl;
-	cout << "sq sum " << _ss << endl << endl << endl;*/
 
 }
 

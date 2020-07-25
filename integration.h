@@ -30,7 +30,8 @@ enum E_PRINT_MODE
 
 struct itg_result
 {
-	double value;
+	double lin_value; // I(Vt)dn
+	double sqr_value; // I(Vt*Vt)dn
 	double interpolation_accuracy; // точность интерполяции
 	double integration_error; // ошибка расчета интеграла
 	double ms_deviation; // mean-square deviation
@@ -39,7 +40,7 @@ struct itg_result
 	double itp_diameter;
 	double weight_coef;
 
-	itg_result() : value(0.0), interpolation_accuracy(1.0), integration_error(1.0), 
+	itg_result() : lin_value(0.0), sqr_value(0.0), interpolation_accuracy(1.0), integration_error(1.0), 
 		ms_deviation(1.0), step_size(0.0), step_count(0), itp_diameter(0.0), weight_coef(0.0)
 	{}
 };
@@ -130,7 +131,7 @@ int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm = EPM_ON)
 
 	// refresh_cut();
 
-	double K = wv[0].mvn.mv.length() / wv[0].mvn.velocity;
+	double len_K = wv[0].mvn.mv.length() / wv[0].mvn.velocity;
 
 	double h = cut.v().length() * 1000 / n; // шаг в метрах
 	
@@ -173,7 +174,7 @@ int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm = EPM_ON)
 		++step_count;
 
 		vec prnd = cut_line.perpendicular(gr_avr);
-		prnd.shorten(val[i] * K);
+		prnd.shorten(val[i] * len_K);
 
 		if (pm == EPM_ON)
 			fitp << prnd.at_geo_cs(dcs_origin).toGlanceFormat();
@@ -215,11 +216,16 @@ int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm = EPM_ON)
 
 	// print_array(val, "calculated avrage value in metres is");
 
-	double sum = 0.0;
+	double lin_sum = 0.0;
+	double sqr_sum = 0.0;
 	for (size_t i = 0; i < val.size(); ++i)
-		sum += val[i] * h;
+	{
+		lin_sum += val[i] * h;
+		sqr_sum += val[i] * val[i] * h * sign(val[i]);
+	}
 
-	itg_res.value = sum;
+	itg_res.lin_value = lin_sum;
+	itg_res.sqr_value = sqr_sum;
 
 	if (pm == EPM_ON)
 	{
@@ -229,173 +235,5 @@ int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm = EPM_ON)
 
 	return EC_ITG_SUCCESS;
 }
-
-/*$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$*/
-
-// void print_array(vector <double> ar, string str)
-// {
-// 	flog << str << endl;
-// 	for (size_t i = 0; i < ar.size(); ++i)
-// 		flog << i << ":" << ar[i] << "\t";
-// 	flog << endl;
-// }
-
-// double dist_metr(vec v)
-// {
-// 	// double GR = 4e7 / 360;
-// 	double dx = fabs(v.end.x - v.start.x) * GR/* * cos((v.start.y + v.end.y) / 2)*/, 
-// 		   dy = fabs(v.end.y - v.end.x) * GR;
-// 	// return sqrt(dx * dx + dy * dy);
-// 	return v.length() * GR;
-// }
-
-
-// void interpolate(vector <double> &val) // line (линейное)
-// {
-// 	int i = 0;
-// 	while (i < val.size() && val[i] == 0) ++i;
-// 	if (i > 0)
-// 	{
-// 		for (int j = 0; j < i; ++j)
-// 			val[j] = val[i];
-// 	}
-// 	while (i < val.size())
-// 	{
-// 		while (i < val.size() && val[i] != 0) ++i;
-// 		if (i >= val.size()) break;
-// 		int j = i;
-// 		while (j < val.size() && val[j] == 0) ++j;
-// 		if (j == val.size())
-// 		{
-// 			for (int l = i; l < j; ++l)
-// 				val[l] = val[i - 1];
-// 			break;
-// 		} else {
-// 			int nn = j - i;
-// 			for (int l = 0; l < nn; ++l)
-// 				val[i + l] = val[i - 1] + (val[j] - val[i - 1]) / (nn + 1) * (l + 1);
-// 		}
-// 		i = j;
-// 	}
-// }
-
-/*double integral(vector <movement> list, vector <point> proj, vector <point> tan, vec st, string filename) //list - point index from move point vector; 
-																										//points - point on station line
-{
-
-	fAV.open(filename.c_str());
-
-	double K = list[0].mv.length() / list[0].velocity;
-	// cout << "size of vec is " << vec.size() << endl;
-
-	int n = list.size() * 2;
-	double h = st.length() / n, h_m = dist_metr(st) / n;
-	double dx = (st.end.x - st.start.x) / n;
-	double dy = (st.end.y - st.start.y) / n;
-
-	fitg << "dist(st) = " << st.length() << "\tdist_metr(st) = " << dist_metr(st) << endl;
-
-	vector <double> val(n);
-	vector <double> lval(n);
-	vector <double> tan_avr;
-	vector <double> pc(n, 0);
-
-	Line interval(st);
-
-	fitg << st.toString("station") << endl;
-	fitg << "Point count (for n = " << n << "\th = " << h << "\th_m = " << h_m << "\tdx = " << dx << "\tdy = " << dy << ")\n\n"; //in each interval is\n\t";
-	for (int i = 0; i < n; ++i)
-	{
-		int point_count = 0;
-		point gr1(st.start.x + i * dx, st.start.y + i * dy);
-		point gr2(st.start.x + (i + 1) * dx, st.start.y + (i + 1) * dy);
-		point gr_avr = vec(gr1, gr2).middle();;
-
-		double len_sum = 0.0;
-		double sp_sum = 0.0;
-		fitg << gr1.toString("gr1") << "\t" << gr2.toString("gr2") << "\t\ti = " << i << endl;
-
-		for (int j = 0; j < proj.size(); ++j)
-		{
-			if (vec(gr1, gr2).contains(proj[j]))
-			{
-				++point_count;
-				double sgn = sign_vv(st, list[j].mv);
-				double d = list[j].mv.start.distance_to(tan[j]);
-				// double d = dist_metr(vec(list[j].start, tan[j]));
-				fitg << "\t" << j << ":\t" << list[j].mv.toString("move vector") << ", " << vec(list[j].mv.start, tan[j]).toString("tangential component") << 
-						"\n\t\t\t\t\t\t\t\t\t\ttc:\tlength is " << list[j].mv.start.distance_to(tan[j]) << "\tsign is " << sgn << endl;;
-				len_sum += d * sgn;
-				sp_sum += list[j].velocity * sgn;
-			}
-		}
-
-		// cout << point_count << " ";
-		pc[i] = point_count;
-		if (point_count != 0)
-		{
-			tan_avr.push_back(len_sum / point_count);
-			val[i] = sp_sum / point_count;
-			lval[i] = len_sum / point_count;
-			
-		}
-	}
-	fitg << endl;
-
-	print_array(val, "init val is");
-
-
-	interpolate(val);
-
-	for (int i = 0; i < n; ++i)
-	{
-		point gr1(st.start.x + i * dx, st.start.y + i * dy);
-		point gr2(st.start.x + (i + 1) * dx, st.start.y + (i + 1) * dy);
-		point gr_avr = vec(gr1, gr2).middle();;
-
-		// point avr_long_end = interval.perpendicular(gr_avr);
-		// point avr_end = short_v(vec(gr_avr, avr_long_end), val[i] * K);
-
-		vec prnd = interval.perpendicular(gr_avr);
-		prnd.shorten(val[i] * K);
-		// favrtan << str_vec_format(vec(gr_avr, avr_long_end));
-		fAV << prnd.toGlanceFormat();
-		fitg << "\t\t" << prnd.toString("avr vec") << endl;
-		// fitg << "\tpoint_count is " << pc[i] << ", vector length sum is " << len_sum << ", vls*dx = " << lval[i] << "vss*dx = " << val[i] << endl; 	
-	}
-
-	print_array(pc, "point count in every interval is");
-
-	print_array(tan_avr, "tangential component length is");
-
-	print_array(val, "calculated avrage [speed value * dx] in metres is");
-
-	print_array(lval, "calculated avrage [tan com length * dx] in gr is");
-
-	fAV.close();
-
-	double sum = 0.0;
-	for (int i = 0; i < val.size(); ++i)
-		sum += val[i] * h_m;
-
-	return sum;
-}*/
-
-// double get_integration_error(vector <double> val, double h, int n)
-// {
-// 	vector <double> dv1(val.size() - 1);
-// 	vector <double> dv2(dv1.size() - 1);
-// 	double err = 0.0;
-// 	for (int i = 0; i < val.size() - 1; ++i)
-// 	{
-// 		dv1[i] = fabs(val[i + 1] - val[i]);
-// 		if (i > 0) 
-// 		{
-// 			dv2[i - 1] = fabs(dv1[i] - dv1[i - 1]);
-// 			err = max(err, dv2[i - 1]);
-// 		}
-// 	}
-// 	return err * h * h * h * n / 24;
-// }
 
 #endif // INTEGRATION_H

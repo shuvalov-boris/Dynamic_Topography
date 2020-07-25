@@ -42,15 +42,16 @@ struct scut // Разрез
 	double width;
 	double itp_diameter;
 	double weight_coef;
+	double curvature_radius; // радус кривизны потока
 
 	// cut(vec v, double w) : 
 		// start(v.start), end(v.end), width(w) {}
 
 	scut() {}
 
-	scut(vec v, double w, double id = 0.0, double wc = 0.0) : 
+	scut(vec v, double w, double id, double wc, double cr) : 
 		start(v.start), end(v.end), width(w),
-		itp_diameter(id), weight_coef(wc / 1000) {}
+		itp_diameter(id), weight_coef(wc / 1000), curvature_radius(cr) {}
 
 	vec v()	{ return vec(start, end); }
 

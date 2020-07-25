@@ -57,6 +57,7 @@ void print_file_formats()
 	<< "\t\tcut width (radius), [km]\tor -1 by default (10 km)\n"
 	<< "\t\tinterpolation interval (diameter), [km]\tor -1 by calculation\n"
 	<< "\t\tweight coefficient\tor -1 by default\n"
+	<< "\t\tflow radius of curvature\n"
 
 	<< "\t<dt_out_file>\t\tfile for result output\n"
 	<< "\t    string format:\n"
@@ -74,7 +75,8 @@ void print_file_formats()
 	<< "\t\tmean-square deviation\n"
 	<< "\t\ta priori error\n"
 	<< "\t\tcut length, [km]\n"
-	<< "\t\tDT coefficient\n"
+	<< "\t\tcurvature coefficient (1 / K / G)\n"
+	<< "\t\tDT coefficient (f / G)\n"
 	<< "\t\tintegration step size [meters]\n"
 	<< "\t\tintegration steps count\n"
 	<< "\t\tvector count\n";
@@ -82,7 +84,7 @@ void print_file_formats()
 
 void print_version()
 {
-	cout << "Integral_DT release data - 21 July 2020\n";
+	cout << "Integral_DT release data - 25 July 2020\n";
 }
 
 char* move_points_file;
@@ -101,12 +103,12 @@ void read_cuts(char *file_name, vector <scut> &cut)
 {
 	fstream fcut;
 	fcut.open(file_name);
-	double gsx, gsy, gex, gey, cut_width, itp_diameter, weight_coef;
+	double gsx, gsy, gex, gey, cut_width, itp_diameter, weight_coef, curv_radius;
 
-	while (fcut >> gsx >> gsy >> gex >> gey >> cut_width >> itp_diameter >> weight_coef)
+	while (fcut >> gsx >> gsy >> gex >> gey >> cut_width >> itp_diameter >> weight_coef >> curv_radius)
 	{
 		vec v(point(gsx, gsy), point(gex, gey));
-		cut.push_back(scut(v, cut_width, itp_diameter, weight_coef));
+		cut.push_back(scut(v, cut_width, itp_diameter, weight_coef, curv_radius));
 	}
 	fcut.close();
 }

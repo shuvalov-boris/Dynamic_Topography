@@ -35,7 +35,8 @@ struct dt_result
 	double dt_error;			// разность двух значени ДТ с разным количеством интервалов
 	double a_priori_error; 		// апроиорная ошибка
 	double cut_length;
-	double dt_coef;
+	double dt_coef; // 
+	double cr_coef;
 	int vector_count;
 
 	dt_result() : dt_error(-1.0), a_priori_error(-1.0)
@@ -51,17 +52,18 @@ struct dt_result
 	void calc_dt(double latitude)
 	{
 		dt_coef = dyn_top_koef(latitude);
-		dt = itg_res.value * dt_coef; 
-		// interpolation_accuracy *= k; 
+		cr_coef = 1. / cut.curvature_radius / G;
+		
+		dt = cr_coef * itg_res.sqr_value + dt_coef * itg_res.lin_value;
 	}
 
 	void print_to(ofstream &file)
 	{
-		file << cut.start.x << " " << cut.start.y << " " << cut.end.x << " " << cut.end.y << " " << dt << " " << 
-			cut.width << " " << itg_res.itp_diameter << " " << itg_res.weight_coef * 1000 << " " << 
+		file << cut.start.x << " " << cut.start.y << " " << cut.end.x << " " << cut.end.y << " " << dt << " " 
+			 << cut.width << " " << itg_res.itp_diameter << " " << itg_res.weight_coef * 1000 << " " << 
 			dt_error << " " << itg_res.interpolation_accuracy << " " << itg_res.integration_error << " " 
-			<< itg_res.ms_deviation << " " << a_priori_error << " " << cut_length << " " << dt_coef << " " <<
-			itg_res.step_size * 1000 << " " << itg_res.step_count << " " << vector_count << endl;
+			<< itg_res.ms_deviation << " " << a_priori_error << " " << cut_length << " " << cr_coef << " " 
+			<< dt_coef << " " << itg_res.step_size * 1000 << " " << itg_res.step_count << " " << vector_count << endl;
 	}
 };
 
@@ -200,16 +202,14 @@ int DynamicTopography::take(struct dt_result &dt_res)
 		return itg_code_error;
 
 	// расчет перепада ДТ по результатам интегрирования
-	dt_res.calc_dt(dcs_origin.y);
-
 	dt_res.set(cut, wv.size());
+	dt_res.calc_dt(dcs_origin.y);	
 	dt_res.a_priori_error = apr_err / apr_err_count;
-
 	// расчет ошибки интегрирования
 	integral.set_partitioning_count(wv.size() * 10);
 	struct itg_result itg_res_2;
 	itg_code_error = integral.take(itg_res_2);
-	dt_res.dt_error = fabs(dt_res.itg_res.value - itg_res_2.value) * dt_res.dt_coef;
+	dt_res.dt_error = fabs(dt_res.itg_res.lin_value - itg_res_2.lin_value) * dt_res.dt_coef;
 
 	fNVdec << " " << dt_res.cut.start.x << " " << dt_res.cut.start.y << " " << 
 				dt_res.cut.end.x << " " << dt_res.cut.end.y << "\n";
