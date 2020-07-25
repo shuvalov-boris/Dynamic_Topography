@@ -10,17 +10,10 @@
 
 #define CUT_WIDTH 10 // [км]
 #define G 9.81
-// угловая скорость вращения Земли вокруг оси
-#define EARTH_OMEGA 7.2921e-5
 
 // коды ошибок при расчете перепада динамических высот
 #define EC_DT_SUCCESS 1000
 #define EC_DT_FVF_EMPTY 1002
-
-double coriolis_koef(double fi)
-{
-	return 2 * EARTH_OMEGA * sin(fi * M_PI / 180);
-}
 
 double dyn_top_koef(double latitude)
 {
@@ -53,7 +46,7 @@ struct dt_result
 	{
 		dt_coef = dyn_top_koef(latitude);
 		
-		dt = itg_res.sqr_value / G + dt_coef * itg_res.lin_value;
+		dt = (itg_res.sqr_value + itg_res.lin_value) / G;
 	}
 
 	void print_to(ofstream &file)

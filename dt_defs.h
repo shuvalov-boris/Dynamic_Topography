@@ -16,6 +16,9 @@
 
 #define METERS_IN_ONE_DEG MERIDIAN_LENGTH / 360. 	// метров в одном градусе
 
+// угловая скорость вращения Земли
+#define EARTH_OMEGA 7.2921e-5
+
 struct movement
 {
 	vec mv;
@@ -67,6 +70,11 @@ struct scut // Разрез
 		return string(str);
 	}
 };
+
+double coriolis_koef(double fi)
+{
+	return 2 * EARTH_OMEGA * sin(fi * M_PI / 180);
+}
 
 // origin - центр локальной декартовой системы координат в глобальных декартовых координатах
 point geo2dec(const point &gp, const point &origin = point(0, 0))

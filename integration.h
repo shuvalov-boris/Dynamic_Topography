@@ -163,13 +163,6 @@ int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm = EPM_ON)
 		point gr2(cut.start.x + (i + 1) * dx, cut.start.y + (i + 1) * dy);
 		point gr_avr = vec(gr1, gr2).middle();
 
-		double curv_K = 0.;
-		// учёт кривизны потока
-		if (cut.curvature_correction == true)
-			curv_K = 1 / KM2M(cut.curvature_center.distance_to(gr_avr)); 
-
-		// fitg << gr1.toString("gr1") << "\t" << gr2.toString("gr2") << "\t\ti = " << i << endl;
-
 		double velocity = itp.take_for(gr_avr);
 
 		++step_count;
@@ -182,7 +175,14 @@ int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm = EPM_ON)
 
 		// fitg << "\t\t" << prnd.toString("avr vec") << endl;
 
-		lin_sum += velocity * h;
+		double coriolis = coriolis_koef(gr_avr.at_geo_cs(dcs_origin).y);
+
+		double curv_K = 0.;
+		// учёт кривизны потока
+		if (cut.curvature_correction == true)
+			curv_K = 1 / KM2M(cut.curvature_center.distance_to(gr_avr)); 
+
+		lin_sum += coriolis * velocity * h;
 		sqr_sum += curv_K * velocity * velocity * h * sign(velocity);
 	}
 	// fitg << endl;
