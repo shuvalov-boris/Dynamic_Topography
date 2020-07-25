@@ -42,23 +42,28 @@ struct scut // Разрез
 	double width;
 	double itp_diameter;
 	double weight_coef;
-	double curvature_radius; // радус кривизны потока
+	point curvature_center; // центр кривизны потока
+	bool curvature_correction = false; // учитывать ли кривизнц потока при расчете ДТ
 
 	// cut(vec v, double w) : 
 		// start(v.start), end(v.end), width(w) {}
 
 	scut() {}
 
-	scut(vec v, double w, double id, double wc, double cr) : 
-		start(v.start), end(v.end), width(w),
-		itp_diameter(id), weight_coef(wc / 1000), curvature_radius(cr) {}
+	scut(vec v, double w, double id, double wc) : 
+		scut(v, w, id, wc, point(0., 0.), false) {}
+
+	scut(vec v, double w, double id, double wc, point cc, bool correction = true) :
+		start(v.start), end(v.end), width(w), itp_diameter(id), weight_coef(wc / 1000),
+		 curvature_center(cc), curvature_correction(correction) {}
 
 	vec v()	{ return vec(start, end); }
 
 	string toString(string name = string(""))
 	{
-		char str[30];
-		sprintf(str, "%s(%2f, %2f)", name.c_str(), width, weight_coef * 1000);
+		char str[200];
+		sprintf(str, "%s(%2f, %2f) with %s", name.c_str(), width, weight_coef * 1000, 
+			curvature_center.toString("CC").c_str());
 		return string(str);
 	}
 };
@@ -78,7 +83,7 @@ point dec2geo(const point &dp, const point &origin = point(0, 0))
 	return gdp;
 }
 
-// origin - в географических координатах
+// origin - центр декартовой СК в географических координатах
 void point::to_dec_cs(const point &origin) 
 {
 	float latitude = this->y;
@@ -94,20 +99,18 @@ void point::to_dec_cs(const point &origin)
 	this->x *= little_radius_at_latitude * M_PI / 180;
 	this->y *= METERS_IN_ONE_DEG;
 
-	this->x /= 1000;
-	this->y /= 1000;
+	this->x = M2KM(this->x);
+	this->y = M2KM(this->y);
 }
 
 void point::to_geo_cs(const point &origin)
 {
-	this->y *= 1000;
-	this->x *= 1000;
+	this->x = KM2M(this->x);
+	this->y = KM2M(this->y);
 
 	this->y = this->y / MERIDIAN_LENGTH * 360.;	
-	// cout << fixed << setprecision(10) << "to_geo_cs: gdp.y = " << this->y << endl;
 
 	float latitude = this->y + origin.y;
-	// cout << fixed << setprecision(14) << "to_geo: latitude is " << latitude << endl;
 
 	// радиус Земли (от её центра к точке на поверхности заданной географической широты)
 	double earth_radius_at_latitude = EQUATOR_RADIUS * 
@@ -124,18 +127,19 @@ void point::to_geo_cs(const point &origin)
 
 void to_cartesian_cs(vector <movement> &mvn, vector <scut> &station)
 {
-	point dcs_dec_origin = station[0].v().middle(); // not dec but geo -> rename variable
+	point dcs_geo_origin = station[0].v().middle();
 
 	for (size_t j = 0; j < mvn.size(); ++j)
 	{
-		mvn[j].mv.start.to_dec_cs(dcs_dec_origin);
-		mvn[j].mv.end.to_dec_cs(dcs_dec_origin);
+		mvn[j].mv.start.to_dec_cs(dcs_geo_origin);
+		mvn[j].mv.end.to_dec_cs(dcs_geo_origin);
 	}
 
 	for (size_t j = 0; j < station.size(); ++j)
 	{
-		station[j].start.to_dec_cs(dcs_dec_origin);
-		station[j].end.to_dec_cs(dcs_dec_origin);
+		station[j].start.to_dec_cs(dcs_geo_origin);
+		station[j].end.to_dec_cs(dcs_geo_origin);
+		station[j].curvature_center.to_dec_cs(dcs_geo_origin);
 	}
 }
 

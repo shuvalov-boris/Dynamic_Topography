@@ -133,7 +133,7 @@ int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm = EPM_ON)
 
 	double len_K = wv[0].mvn.mv.length() / wv[0].mvn.velocity;
 
-	double h = cut.v().length() * 1000 / n; // шаг в метрах
+	double h = KM2M(cut.v().length()) / n; // шаг в метрах
 	
 	double dx = (cut.end.x - cut.start.x) / n;
 	double dy = (cut.end.y - cut.start.y) / n;
@@ -141,10 +141,6 @@ int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm = EPM_ON)
 	Line cut_line(cut.v());
 
 	// fitg << "dist(interval) = " << interval.length() << "\tdist_metr(interval) = " << dist_metr(interval) << endl;
-
-	vector <double> val(n, 0.0);
-	vector <double> tan_avr;
-	vector <int> pc(n);
 
 	Interpolation itp(cut.v(), wv);
 
@@ -154,8 +150,8 @@ int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm = EPM_ON)
 		itp.set_radius(cut.itp_diameter / 2);
 	if (cut.weight_coef >= 0.0) itp.set_weight_coef(cut.weight_coef);
 
-	// double apr_err = 0.0;
-	// int apr_err_count = 0;
+	double lin_sum = 0.0;
+	double sqr_sum = 0.0;
 
 	int step_count = 0;
 
@@ -167,20 +163,27 @@ int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm = EPM_ON)
 		point gr2(cut.start.x + (i + 1) * dx, cut.start.y + (i + 1) * dy);
 		point gr_avr = vec(gr1, gr2).middle();
 
+		double curv_K = 0.;
+		// учёт кривизны потока
+		if (cut.curvature_correction == true)
+			curv_K = 1 / KM2M(cut.curvature_center.distance_to(gr_avr)); 
+
 		// fitg << gr1.toString("gr1") << "\t" << gr2.toString("gr2") << "\t\ti = " << i << endl;
 
-		val[i] = itp.take_for(gr_avr);
+		double velocity = itp.take_for(gr_avr);
 
 		++step_count;
 
 		vec prnd = cut_line.perpendicular(gr_avr);
-		prnd.shorten(val[i] * len_K);
+		prnd.shorten(velocity * len_K);
 
 		if (pm == EPM_ON)
 			fitp << prnd.at_geo_cs(dcs_origin).toGlanceFormat();
 
 		// fitg << "\t\t" << prnd.toString("avr vec") << endl;
 
+		lin_sum += velocity * h;
+		sqr_sum += curv_K * velocity * velocity * h * sign(velocity);
 	}
 	// fitg << endl;
 
@@ -211,18 +214,6 @@ int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm = EPM_ON)
 	itg_res.step_count = step_count;
 	itg_res.itp_diameter = itp.get_radius() * 2;
 	itg_res.weight_coef = itp.get_weight_coef();	
-
-	// print_array(pc, "point count in every interval is");
-
-	// print_array(val, "calculated avrage value in metres is");
-
-	double lin_sum = 0.0;
-	double sqr_sum = 0.0;
-	for (size_t i = 0; i < val.size(); ++i)
-	{
-		lin_sum += val[i] * h;
-		sqr_sum += val[i] * val[i] * h * sign(val[i]);
-	}
 
 	itg_res.lin_value = lin_sum;
 	itg_res.sqr_value = sqr_sum;

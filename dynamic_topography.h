@@ -52,9 +52,8 @@ struct dt_result
 	void calc_dt(double latitude)
 	{
 		dt_coef = dyn_top_koef(latitude);
-		cr_coef = 1. / cut.curvature_radius / G;
 		
-		dt = cr_coef * itg_res.sqr_value + dt_coef * itg_res.lin_value;
+		dt = itg_res.sqr_value / G + dt_coef * itg_res.lin_value;
 	}
 
 	void print_to(ofstream &file)
@@ -63,7 +62,7 @@ struct dt_result
 			 << cut.width << " " << itg_res.itp_diameter << " " << itg_res.weight_coef * 1000 << " " << 
 			dt_error << " " << itg_res.interpolation_accuracy << " " << itg_res.integration_error << " " 
 			<< itg_res.ms_deviation << " " << a_priori_error << " " << cut_length << " " << cr_coef << " " 
-			<< dt_coef << " " << itg_res.step_size * 1000 << " " << itg_res.step_count << " " << vector_count << endl;
+			<< KM2M(itg_res.step_size) << " " << itg_res.step_count << " " << vector_count << endl;
 	}
 };
 

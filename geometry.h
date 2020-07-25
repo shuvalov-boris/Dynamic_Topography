@@ -18,6 +18,10 @@
 
 #define sqr(a) ((a)*(a))
 
+#define MinKM 1000 // meters in kilometers
+#define KM2M(a) (a * MinKM)
+#define M2KM(a) (a / MinKM)
+
 using namespace std; //	delete (escape it)
 
 struct point
