@@ -1,43 +1,4 @@
-#ifndef INTERPOLATION_H
-#define INTERPOLATION_H
-
-#include "dt_defs.h"
-#include "log.h"
-
-#include <algorithm>
-#include <vector>
-
-#define WEIGHT_COEF 0.01
-#define WEIGHT_COEF_TRANSFORM 1. // потребовалось при переходе от градусов к метрам для сохранение прежней размерности WEIGHT_COEF
-
-class Interpolation
-{
-	double R;
-	double weight_coef;
-	vec interval;
-	vector <wvector> wv;
-
-	double get_norm_comp(int idx);
-
-	double weight_func(double _r);
-	double calc_weight_sum(vector <int> &idx, point pt, int omit_idx);
-	double get_interpolation_result(vector <int> &idx, point pt, double sum);
-
-public:
-	Interpolation(vec itv, vector <wvector> &_wv);
-
-	void calc_radius();
-	void set_radius(double r);
-	void set_weight_coef(double coef);
-
-	double get_radius();
-	double get_weight_coef();
-
-	double take_for(point pt);
-
-	void calc_accuracy(vector <double> &err);
-
-};
+#include "interpolation.h"
 
 double Interpolation::get_norm_comp(int idx)
 {
@@ -51,7 +12,7 @@ double Interpolation::weight_func(double r)
 	return exp(- weight_coef * r * r) - exp(- weight_coef * R * R);
 }
 
-double Interpolation::calc_weight_sum(vector <int> &idx, point pt, int omit_idx = -1)
+double Interpolation::calc_weight_sum(std::vector <int> &idx, point pt, int omit_idx = -1)
 {
 	double S = 0.0;
 	for (size_t j = 0; j < wv.size(); ++j)
@@ -71,7 +32,7 @@ double Interpolation::calc_weight_sum(vector <int> &idx, point pt, int omit_idx 
 	return S;
 }
 
-double Interpolation::get_interpolation_result(vector <int> &idx, point pt, double sum)
+double Interpolation::get_interpolation_result(std::vector <int> &idx, point pt, double sum)
 {
 	if (sum == 0.0) return 0.0;
 
@@ -89,7 +50,7 @@ double Interpolation::get_interpolation_result(vector <int> &idx, point pt, doub
 	return val;
 }
 
-Interpolation::Interpolation(vec itv, vector <wvector> &_wv) : weight_coef(WEIGHT_COEF / WEIGHT_COEF_TRANSFORM), interval(itv), wv(_wv)
+Interpolation::Interpolation(vec itv, std::vector <wvector> &_wv) : weight_coef(WEIGHT_COEF / WEIGHT_COEF_TRANSFORM), interval(itv), wv(_wv)
 {
 	R = itv.length();
 }
@@ -97,7 +58,7 @@ Interpolation::Interpolation(vec itv, vector <wvector> &_wv) : weight_coef(WEIGH
 void Interpolation::calc_radius()
 {
 	double res;
-	vector <double> dist;
+	std::vector <double> dist;
 	for (size_t i = 0 ; i < wv.size(); ++i)
 	{
 		double d = interval.start.distance_to(wv[i].proj);
@@ -108,7 +69,7 @@ void Interpolation::calc_radius()
 	res = 0.0;
 	for (size_t i = 1; i < dist.size(); ++i)
 	{
-		res = max(res, dist[i] - dist[i - 1]);
+		res = std::max(res, dist[i] - dist[i - 1]);
 	}
 	R = res * 1.5;
 }
@@ -138,24 +99,24 @@ double Interpolation::take_for(point pt)
 {
 
 	double val = 0.0;
-	vector <int> act_p_ind;
+	std::vector <int> act_p_ind;
 
 	double S = calc_weight_sum(act_p_ind, pt);
 
-	// cout << " interpolation: take for: act_p_ind vector size is " << act_p_ind.size() << " & weight sum is " << S << endl;
+	// cout << " interpolation: take for: act_p_ind std::vector size is " << act_p_ind.size() << " & weight sum is " << S << endl;
 
 	val = get_interpolation_result(act_p_ind, pt, S);
 
 	return val;
 }
 
-void Interpolation::calc_accuracy(vector <double> &err)
+void Interpolation::calc_accuracy(std::vector <double> &err)
 {
-	vector <int> act_p_ind;
+	std::vector <int> act_p_ind;
 
-	vector <double> vl;
-	vector <double> nc;
-	vector <double> sum;
+	std::vector <double> vl;
+	std::vector <double> nc;
+	std::vector <double> sum;
 
 	for (size_t i = 0; i < wv.size(); ++i)
 	{
@@ -173,6 +134,3 @@ void Interpolation::calc_accuracy(vector <double> &err)
 	}
 
 }
-
-
-#endif // INTERPOLATION_H

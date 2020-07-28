@@ -1,104 +1,9 @@
-#ifndef INTEGRATION_H
-#define INTEGRATION_H
+#include "integration.h"
 
-#include "interpolation.h"
-#include "dt_defs.h"
-#include "log.h"
 
-#include <string>
-#include <cmath>
-#include <vector>
-#include <algorithm>
-
-#define MIN_POINT_COUNT 10
-
-// коды ошибок при расчете интеграла
-#define EC_ITG_SUCCESS 1000
-#define EC_ITG_NOT_ENOUGH_DATA 2004
-
-enum E_INTERPOLATION_MODE
-{
-	EIM_LINEAR,
-	ETM_WEIGTH_FUNC
-};
-
-enum E_PRINT_MODE
-{
-	EPM_ON,
-	EPM_OFF
-};
-
-struct itg_result
-{
-	double lin_value; // I(Vt)dn
-	double sqr_value; // I(Vt*Vt)dn
-	double interpolation_accuracy; // точность интерполяции
-	double integration_error; // ошибка расчета интеграла
-	double ms_deviation; // mean-square deviation
-	double step_size;
-	double step_count;
-	double itp_diameter;
-	double weight_coef;
-
-	itg_result() : lin_value(0.0), sqr_value(0.0), interpolation_accuracy(1.0), integration_error(1.0), 
-		ms_deviation(1.0), step_size(0.0), step_count(0), itp_diameter(0.0), weight_coef(0.0)
-	{}
-};
-
-ofstream fAV;
-// E_INTEGRATION_ERROR itg_err;
-
-class Integral
-{
-	scut cut;
-	point dcs_origin;
-	vector <wvector> wv;
-
-	int n; // количество интервалов разбиения
-
-	E_PRINT_MODE print_mode;
-	ofstream fitp;
-
-	double get_integration_error(vector <double> &val, double h, int n);
-
-public:
-	Integral(scut c, vector <wvector> &_wv);
-	~Integral();
-
-	void set_cut(scut c);
-	void set_dcs_origin(const point &dcs_orn);
-	void set_partitioning_count(int _n);
-	void set_filename(string filename);
-
-	int take(struct itg_result &itg_res, E_PRINT_MODE pm);
-};
-
-/*
-double Integral::get_integration_error(vector <double> &val, double h, int n)
-{
-	vector <double> dv1(val.size() - 1);
-	vector <double> dv2(dv1.size() - 1);
-	double err = 0.0;
-	for (int i = 0; i < val.size() - 1; ++i)
-	{
-		dv1[i] = fabs(val[i + 1] - val[i]);
-		if (i > 0) 
-		{
-			dv2[i - 1] = fabs(dv1[i] - dv1[i - 1]);
-			err = max(err, dv2[i - 1]);
-		}
-	}
-	return err * h * h * h * n / 24;
-}*/
-
-Integral::Integral(scut c, vector <wvector> &_wv) : cut(c), wv(_wv)
+Integral::Integral(scut c, std::vector <wvector> &_wv) : cut(c), wv(_wv)
 {
 
-}
-
-Integral::~Integral()
-{
-	// fitp.close();
 }
 
 void Integral::set_cut(scut c)
@@ -116,16 +21,16 @@ void Integral::set_partitioning_count(int _n)
 	n = _n;
 }
 
-void Integral::set_filename(string filename)
+void Integral::set_filename(std::string filename)
 {
 	fitp.open(filename.c_str());
 }
 
-int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm = EPM_ON)
+int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm)
 {
 	if (wv.size() < MIN_POINT_COUNT)
 	{
-		cerr << "Error: not enough data to calculate the integral\n";
+		std::cerr << "Error: not enough data to calculate the integral\n";
 		return EC_ITG_NOT_ENOUGH_DATA;
 	}
 
@@ -187,7 +92,7 @@ int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm = EPM_ON)
 	}
 	// fitg << endl;
 
-	vector <double> itp_acr;	// точность интерполяции
+	std::vector <double> itp_acr;	// точность интерполяции
 
 	itp.calc_accuracy(itp_acr);
 
@@ -227,4 +132,20 @@ int Integral::take(struct itg_result &itg_res, E_PRINT_MODE pm = EPM_ON)
 	return EC_ITG_SUCCESS;
 }
 
-#endif // INTEGRATION_H
+/*
+double Integral::get_integration_error(std::vector <double> &val, double h, int n)
+{
+	std::vector <double> dv1(val.size() - 1);
+	std::vector <double> dv2(dv1.size() - 1);
+	double err = 0.0;
+	for (int i = 0; i < val.size() - 1; ++i)
+	{
+		dv1[i] = fabs(val[i + 1] - val[i]);
+		if (i > 0) 
+		{
+			dv2[i - 1] = fabs(dv1[i] - dv1[i - 1]);
+			err = max(err, dv2[i - 1]);
+		}
+	}
+	return err * h * h * h * n / 24;
+}*/

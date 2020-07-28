@@ -1,98 +1,54 @@
-#ifndef DYNAMIC_TOPOGRAPHY_H
-#define DYNAMIC_TOPOGRAPHY_H
+#include "dynamic_topography.h"
 
-#include "geometry.h"
-#include "integration.h"
+////////////////////////////////////////////////////////////////////////////////
+// --------------------------- dt_result struct ------------------------------//
+////////////////////////////////////////////////////////////////////////////////
 
-#include <vector>
-#include <fstream>
-#include <iostream>
+dt_result::dt_result() : dt_error(-1.0), a_priori_error(-1.0)
+{}
 
-#define CUT_WIDTH 10 // [км]
-#define G 9.81
-
-// коды ошибок при расчете перепада динамических высот
-#define EC_DT_SUCCESS 1000
-#define EC_DT_FVF_EMPTY 1002
-
-double dyn_top_koef(double latitude)
+void dt_result::set(scut _cut, int vc) 
 {
-	return coriolis_koef(latitude) / G;
+	cut = _cut;
+	vector_count = vc;
+	cut_length = _cut.v().length();
 }
 
-struct dt_result
+void dt_result::calc_dt(double latitude)
 {
-	scut cut; 					// разрез
-	double dt; 					// динамическая топография
-	struct itg_result itg_res;
-	double dt_error;			// разность двух значени ДТ с разным количеством интервалов
-	double a_priori_error; 		// апроиорная ошибка
-	double cut_length;
-	double dt_coef; // 
-	double cr_coef;
-	int vector_count;
+	dt_coef = coriolis_koef(latitude) / G;
+	
+	dt = (itg_res.sqr_value + itg_res.lin_value) / G;
+}
 
-	dt_result() : dt_error(-1.0), a_priori_error(-1.0)
-	{}
+void dt_result::print_to(std::ofstream &file)
+{
+	file << cut.start.x << " " << cut.start.y << " " << cut.end.x << " " << cut.end.y << " " << dt << " " 
+		 << cut.width << " " << itg_res.itp_diameter << " " << itg_res.weight_coef * 1000 << " " << 
+		dt_error << " " << itg_res.interpolation_accuracy << " " << itg_res.integration_error << " " 
+		<< itg_res.ms_deviation << " " << a_priori_error << " " << cut_length << " " << cr_coef << " " 
+		<< KM2M(itg_res.step_size) << " " << itg_res.step_count << " " << vector_count << std::endl;
+}
 
-	void set(scut _cut, int vc) 
-	{
-		cut = _cut;
-		vector_count = vc;
-		cut_length = _cut.v().length();
-	}
-
-	void calc_dt(double latitude)
-	{
-		dt_coef = dyn_top_koef(latitude);
-		
-		dt = (itg_res.sqr_value + itg_res.lin_value) / G;
-	}
-
-	void print_to(ofstream &file)
-	{
-		file << cut.start.x << " " << cut.start.y << " " << cut.end.x << " " << cut.end.y << " " << dt << " " 
-			 << cut.width << " " << itg_res.itp_diameter << " " << itg_res.weight_coef * 1000 << " " << 
-			dt_error << " " << itg_res.interpolation_accuracy << " " << itg_res.integration_error << " " 
-			<< itg_res.ms_deviation << " " << a_priori_error << " " << cut_length << " " << cr_coef << " " 
-			<< KM2M(itg_res.step_size) << " " << itg_res.step_count << " " << vector_count << endl;
-	}
-};
-
-string get_NV_filename(int ind)
+std::string get_NV_filename(int ind)
 {
 	char str[10];
 	sprintf(str, "NV%d.vec", ind);
-	return string(str);
+	return std::string(str);
 }
 
-string get_AV_filename(int ind)
+std::string get_AV_filename(int ind)
 {
 	char str[10];
 	sprintf(str, "AV%d.vec", ind);
-	return string(str);
+	return std::string(str);
 }
 
-class DynamicTopography
-{
-	scut cut;
-	point dcs_origin; // начало локальной Декартовой СК в географических координатах
-	vector <movement> mvn;
+////////////////////////////////////////////////////////////////////////////////
+// ----------------------- DynamicTopography class ---------------------------//
+////////////////////////////////////////////////////////////////////////////////
 
-	ofstream fNV;
-	int file_index;
-
-public:
-	DynamicTopography(vector <movement> &m);
-
-	void set_file_index(int index);
-	void set_cut(scut c);
-	void set_dcs_origin(const point &dcs_orn);
-	int take(struct dt_result &dt_res);
-
-};
-
-DynamicTopography::DynamicTopography(vector <movement> &m) : mvn(m)
+DynamicTopography::DynamicTopography(std::vector <movement> &m) : mvn(m)
 {
 
 }
@@ -116,7 +72,7 @@ void DynamicTopography::set_dcs_origin(const point &dcs_orn)
 int DynamicTopography::take(struct dt_result &dt_res)
 {
 	fNV.open(get_NV_filename(file_index).c_str());
-	vector <wvector> wv;
+	std::vector <wvector> wv;
 
 	Line cut_line(cut.v());
 
@@ -126,10 +82,10 @@ int DynamicTopography::take(struct dt_result &dt_res)
 	double apr_err = 0.0;
 	int apr_err_count = 0;
 
-	ofstream fNVdec;
+	std::ofstream fNVdec;
 	fNVdec.open("NVdec.txt");
 
-	ofstream fNVgeo;
+	std::ofstream fNVgeo;
 	fNVgeo.open("NVgeo.txt");
 
 	for (size_t j = 0; j < mvn.size(); ++j)
@@ -179,7 +135,7 @@ int DynamicTopography::take(struct dt_result &dt_res)
 
 	if (wv.empty())
 	{
-		cerr << "Desired flow velocity vectors near the cut are not found\n";
+		std::cerr << "Desired flow velocity vectors near the cut are not found\n";
 		return EC_DT_FVF_EMPTY;
 	}
 
@@ -221,5 +177,3 @@ int DynamicTopography::take(struct dt_result &dt_res)
 
 	return EC_DT_SUCCESS;
 }
-
-#endif //DYNAMIC_TOPOGRAPHY_H

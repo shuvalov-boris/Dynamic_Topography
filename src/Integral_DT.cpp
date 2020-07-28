@@ -9,31 +9,27 @@
 
 #include "dt_tests.h"
 #include "dynamic_topography.h"
-#include "log.h"
-
-using namespace std;
-
 
 void print_eng_usage()
 {
-	cout << "This Software is for calculating dynamic topography between two points\n\n";
+	std::cout << "This Software is for calculating dynamic topography between two points\n\n";
 	
-	cout << "USAGE:\tintegral_dt.exe [options] files\n\n";
+	std::cout << "USAGE:\tintegral_dt.exe [options] files\n\n";
 
-	cout << "Options: \n"
+	std::cout << "Options: \n"
 		 << "\t-h\tDisplay this information.\n"
 		 << "\t-v\tDisplay release data.\n"
 		 << "\t-f\tDisplay files format.\n"
 		 << "\t-t <files>\tRun tests.\n\n";
 
-	cout << "USAGE: <vp_out_file> <boundary_points_list> <dt_out_file>\n\n";
+	std::cout << "USAGE: <vp_out_file> <boundary_points_list> <dt_out_file>\n\n";
 
-	cout << "Example: ""integral_DT.exe out_2006-05-04_0730_n27799.m.pro_2006-05-04_1300_n70056.m.pro.txt stations.txt DT_out.txt""\n\n";
+	std::cout << "Example: ""integral_DT.exe out_2006-05-04_0730_n27799.m.pro_2006-05-04_1300_n70056.m.pro.txt stations.txt DT_out.txt""\n\n";
 }
 
 void print_file_formats()
 {
-	cout << "Files formats:\n"
+	std::cout << "Files formats:\n"
 	<< "\t<vp_out_file>\t\tVecPlotter output file describing flow velocity field\n"
 	<< "\t    string format:\n"
 	<< "\t\tgeo longitude start\n"
@@ -77,14 +73,14 @@ void print_file_formats()
 	<< "\t\ta priori error\n"
 	<< "\t\tcut length, [km]\n"
 	<< "\t\tDT coefficient (f / G)\n"
-	<< "\t\tintegration step size [meters]\n"
+	<< "\t\tintegration step size, [meters]\n"
 	<< "\t\tintegration steps count\n"
 	<< "\t\tvector count\n";
 }
 
 void print_version()
 {
-	cout << "Integral_DT release data - 25 July 2020\n";
+	std::cout << "Integral_DT release data - 25 July 2020\n";
 }
 
 char* move_points_file;
@@ -99,16 +95,16 @@ bool file_exists(const char *fname)
 	return _access(fname, 0) != -1;
 }
 
-void read_cuts(char *file_name, vector <scut> &cut)
+void read_cuts(const char *file_name, std::vector <scut> &cut)
 {
-	fstream fcut;
+	std::fstream fcut;
 	fcut.open(file_name);
 	double gsx, gsy, gex, gey, cut_width, itp_diameter, weight_coef, cc_long, cc_lat;
 
-	string line;
+	std::string line;
 	while (getline(fcut, line))
 	{
-		istringstream iss(line);
+		std::istringstream iss(line);
 		if (iss >> gsx >> gsy >> gex >> gey >> cut_width >> itp_diameter >> weight_coef)
 		{
 			vec v(point(gsx, gsy), point(gex, gey));
@@ -124,9 +120,9 @@ void read_cuts(char *file_name, vector <scut> &cut)
 	fcut.close();
 }
 
-void read_movement_field(char *file_name, vector <movement> &mvn)
+void read_movement_field(char *file_name, std::vector <movement> &mvn)
 {
-	fstream fmoves;
+	std::fstream fmoves;
 	fmoves.open(file_name);
 	double gsx, gsy, gex, gey, crl, vlc, err;
 	int psx, psy, pex, pey;
@@ -156,15 +152,15 @@ void read_movement_field(char *file_name, vector <movement> &mvn)
 
 void run_tests()
 {
-	vector <movement> mvn;
-	vector <scut> station;
+	std::vector <movement> mvn;
+	std::vector <scut> station;
 
 	read_movement_field(move_points_file, mvn);
 	read_cuts(station_points_file, station);
 
 	if (station.size() == 0)
 	{
-		cerr << "Error: Station amount is zero\n";
+		std::cerr << "Error: Station amount is zero\n";
 		return;
 	}
 
@@ -175,17 +171,17 @@ void run_tests()
 
 void calculate_dyn_top()
 {
-	ofstream fres;
+	std::ofstream fres;
 
-	vector <movement> mvn;
-	vector <scut> station;
+	std::vector <movement> mvn;
+	std::vector <scut> station;
 
 	read_cuts(station_points_file, station);
 	read_movement_field(move_points_file, mvn);
 	
 	if (station.size() == 0)
 	{
-		cerr << "Error: Station amount is zero\n";
+		std::cerr << "Error: Station amount is zero\n";
 		return;
 	}
 
@@ -195,11 +191,13 @@ void calculate_dyn_top()
 	point geo_origin = station[0].v().middle();
 	to_cartesian_cs(mvn, station);
 
-	ofstream fDSC;
+	std::ofstream fDSC;
 	fDSC.open("DSC.txt");
 	for (size_t i = 0; i < mvn.size(); i++)
-		fDSC << mvn[i].mv.start.x << " " << mvn[i].mv.start.y << " " << mvn[i].mv.end.x << " " << mvn[i].mv.end.y << endl;
-	fDSC << station[0].start.x << " " << station[0].start.y << " " << station[0].end.x << " " << station[0].end.y << endl;
+		fDSC << mvn[i].mv.start.x << " " << mvn[i].mv.start.y << " " 
+			<< mvn[i].mv.end.x << " " << mvn[i].mv.end.y << std::endl;
+	fDSC << station[0].start.x << " " << station[0].start.y << " " 
+		<< station[0].end.x << " " << station[0].end.y << std::endl;
 	fDSC.close();
 
 	fres.open(out_file);
@@ -218,7 +216,7 @@ void calculate_dyn_top()
 		if (ce == EC_DT_SUCCESS)
 			dt_res.print_to(fres);
 		else
-			cerr << "Error: DT taking: " << ce << endl;
+			std::cerr << "Error: DT taking: " << ce << std::endl;
 
 	}
 
@@ -272,8 +270,8 @@ void parse_cmd_arguments(int argc, char** argv)
 		}
 	}
 
-	cout << "Incorrect arguments!\n";
-	cout << "use `-h` argument for help!\n";
+	std::cout << "Incorrect arguments!\n";
+	std::cout << "use `-h` argument for help!\n";
 }
 
 int main(int argc, char** argv)
